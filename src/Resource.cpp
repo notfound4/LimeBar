@@ -10,8 +10,6 @@ extern "C" {
 
 #include <iostream>
 
-#define DEFAULT_Y_OFFSET 4
-
 #define COLOR_FOREGROUND 0xffffffff
 #define COLOR_BACKGROUND 0xff000000
 #define COLOR_UNDERLINE  0xff9f9f9f

@@ -108,8 +108,8 @@ void Monitor::draw_image(const std::string &image)
 
 	g_object_unref(gbuf);
 
-	float scale_factor = static_cast<float>(Resource::instance().get_max_font_height()) / static_cast<float>(height);
-	int16_t x = shift(width*scale_factor), y = (m_rect.height - Resource::instance().get_max_font_height()) / 2;
+	float scale_factor = static_cast<float>(m_rect.height - DEFAULT_Y_OFFSET - Resource::instance().m_underline) / static_cast<float>(height);
+	int16_t x = shift(width*scale_factor), y = DEFAULT_Y_OFFSET / 2;
 	cairo_scale(m_cairo, scale_factor, scale_factor);
 
 	cairo_set_source_surface(m_cairo, surface, x/scale_factor, y/scale_factor);

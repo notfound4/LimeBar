@@ -13,6 +13,8 @@ extern "C" {
 
 #include <pango/pangocairo.h>
 
+#define DEFAULT_Y_OFFSET 4
+
 double get_R(const rgba_t &color);
 double get_G(const rgba_t &color);
 double get_B(const rgba_t &color);

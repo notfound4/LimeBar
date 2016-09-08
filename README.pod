@@ -111,6 +111,10 @@ Set the text underline color. The parameter I<color> can be I<-> or a color in o
 
 Set the font used to draw the following text. The parameter I<index> can either be I<-> or the 1-based index of the slot which contains the desired font. If the parameter is I<-> lemonbar resets to the normal behavior (matching the first font that can be used for the character). If the selected font can't be used to draw a character, lemonbar will fall back to normal behavior for that character
 
+=item B<I>I<image>
+
+Display an image on the bar resized so the height fits the bar.
+
 =item B<A>I<button>I<W>:I<command>:
 
 Create a clickable area starting from the current position, when the area is clicked I<command> is printed on stdout. The area is closed when a B<A> token, not followed by : is encountered.

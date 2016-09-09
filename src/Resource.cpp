@@ -48,6 +48,8 @@ double get_A(const rgba_t &color)
     return static_cast<double>(color.a) / 255.;
 }
 
+namespace limebar {
+
 Resource::Resource()
 {
     m_default_foreground.v = COLOR_FOREGROUND;
@@ -571,4 +573,6 @@ void Resource::clear_all()
     {
         it->second.clear();
     }
+}
+
 }

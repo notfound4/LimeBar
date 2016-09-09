@@ -12,6 +12,8 @@ extern "C" {
 #include <signal.h>
 }
 
+using namespace limebar;
+
 namespace 
 { 
     const size_t ERROR_IN_COMMAND_LINE = 1; 

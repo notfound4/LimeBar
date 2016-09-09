@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+namespace limebar {
+
 Area::Area(uint8_t button, uint16_t begin, uint16_t end, Alignment align, const std::string &command, bool print_pos) :
 m_begin(begin), m_end(end), m_align(align), m_button(button), m_command(command), m_print_pos(print_pos) {}
 
@@ -28,4 +30,6 @@ std::ostream& operator<<(std::ostream &os, const Area &obj)
 			std::cout << obj.m_begin;
 	}
 	return os;
+}
+
 }

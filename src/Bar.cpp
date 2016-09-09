@@ -9,6 +9,8 @@ extern "C" {
 #include <unistd.h>
 }
 
+namespace limebar {
+
 Bar::Bar() : m_pollin{ { .fd = STDIN_FILENO, .events = POLLIN }, { .fd = -1, .events = POLLIN }, }
 {
     m_pollin[1].fd = xcb_get_file_descriptor(Resource::instance().m_connection);
@@ -357,4 +359,6 @@ void Bar::handle_attr(const std::string &input, size_t &pos_i)
 		case '-': Resource::instance().m_attr &= ~attr; break;
 		case '!': Resource::instance().m_attr ^=  attr; break;
 	}
+}
+
 }

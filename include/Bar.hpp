@@ -6,6 +6,8 @@ extern "C" {
 #include <poll.h>
 }
 
+namespace limebar {
+
 class Bar
 {
 public:
@@ -23,3 +25,5 @@ private:
 	struct pollfd                        m_pollin[2];
 	std::map< std::string, std::string > m_labels_map;
 };
+
+}

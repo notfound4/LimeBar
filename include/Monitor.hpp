@@ -11,6 +11,8 @@ extern "C" {
 
 #include "Area.hpp"
 
+namespace limebar {
+
 class Resource;
 
 class Monitor
@@ -56,3 +58,5 @@ private:
 
     std::forward_list<Area>           m_areas;
 };
+
+}

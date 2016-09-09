@@ -4,6 +4,8 @@
 
 #include "Types.hpp"
 
+namespace limebar {
+
 class Area
 {
 	friend std::ostream& operator<<(std::ostream &os, const Area &obj);
@@ -27,3 +29,5 @@ private:
 };
 
 std::ostream& operator<<(std::ostream &os, const Area &obj);
+
+}

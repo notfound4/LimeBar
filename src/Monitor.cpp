@@ -6,6 +6,8 @@
 
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
+namespace limebar {
+
 Monitor::Monitor()
 {
 	m_rect.width = m_rect.height = m_rect.x = m_rect.y = 0;
@@ -267,4 +269,6 @@ void Monitor::area_shift(uint16_t delta)
 bool Monitor::add_area(uint8_t button, uint16_t begin, uint16_t end, Alignment align, const std::string &command, bool print_pos)
 {
 	m_areas.emplace_front(button, begin, end, align, command, print_pos);
+}
+
 }

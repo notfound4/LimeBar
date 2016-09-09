@@ -20,6 +20,8 @@ double get_G(const rgba_t &color);
 double get_B(const rgba_t &color);
 double get_A(const rgba_t &color);
 
+namespace limebar {
+
 class Resource : public singleton<Resource> {
 	friend class singleton<Resource>;
 private:
@@ -108,3 +110,5 @@ public:
 	std::map< PangoFontDescription*, int >         m_descents;
 
 };
+
+}

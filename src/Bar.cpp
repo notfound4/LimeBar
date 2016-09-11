@@ -11,7 +11,7 @@ extern "C" {
 
 namespace limebar {
 
-Bar::Bar() : m_pollin{ { .fd = STDIN_FILENO, .events = POLLIN }, { .fd = -1, .events = POLLIN }, }
+Bar::Bar() : m_pollin{ { .fd = STDIN_FILENO, .events = POLLIN }, { .fd = -1, .events = POLLIN }, }, m_old_non_label("")
 {
     m_pollin[1].fd = xcb_get_file_descriptor(Resource::instance().m_connection);
 }
@@ -99,12 +99,15 @@ void Bar::parse_input(const std::string &input)
 	if (pos_i < input.size())
 		non_label.append(input, pos_i, std::string::npos);
 
-	if (non_label.empty()) return;
-
-
-	Resource::instance().reset_to_default();
-	Resource::instance().clear_all();
-	parse_non_label(non_label);
+    Resource::instance().reset_to_default();
+    Resource::instance().clear_all();
+	if (non_label.empty())
+        parse_non_label(m_old_non_label);
+    else
+    {
+        m_old_non_label = non_label;
+        parse_non_label(non_label);
+    }
 }
 
 rgba_t parse_color(const std::string &input, size_t &pos_i, const rgba_t &def)

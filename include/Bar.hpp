@@ -24,6 +24,7 @@ private:
 private:
 	struct pollfd                        m_pollin[2];
 	std::map< std::string, std::string > m_labels_map;
+	std::string                          m_old_non_label;
 };
 
 }

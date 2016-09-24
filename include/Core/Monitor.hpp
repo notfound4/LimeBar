@@ -18,7 +18,6 @@ class Resource;
 class Monitor
 {
 public:
-	Monitor();
 	explicit Monitor(const xcb_rectangle_t &rect);
 	~Monitor();
 
@@ -43,7 +42,7 @@ public:
 
 	void on_click(uint16_t x, uint8_t button);
 
-	bool add_area(uint8_t button, uint16_t begin, uint16_t end, Alignment align, const std::string &command, bool print_pos);
+	void add_area(std::forward_list<Area> &areas);
 	void area_shift(uint16_t delta);
 
 private:

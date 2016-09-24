@@ -1,0 +1,4 @@
+[submodule "i3ipcpp"]
+	path = src/Modules/i3/3rd/i3ipcpp
+	url = https://github.com/drmgc/i3ipcpp.git
+	branch = dev

@@ -1,6 +1,5 @@
 #include "Bar.hpp"
 #include "OptionPrinter.hpp"
-#include "Resource.hpp"
 
 #include "boost/filesystem.hpp"
 #include "boost/program_options.hpp" 
@@ -25,7 +24,7 @@ namespace
 void
 cleanup (void)
 {
-    Resource::instance().cleanup();
+    LIMEBAR.cleanup();
 }
 
 void
@@ -40,11 +39,14 @@ main (int argc, char **argv)
 {
 	try
 	{
+        LIMEBAR.config();
+
         // Handle options
 		namespace po = boost::program_options;
         namespace fs = boost::filesystem;
 
         std::string appName = fs::basename(argv[0]);
+        std::string command;
 
         po::options_description desc("Options");
         desc.add_options()
@@ -56,12 +58,14 @@ is specified along with the -b switch then the position is relative to the botto
         ("dock,d", po::value< bool >(), "Force docking without asking the window manager. This is needed if the window manager isn't EWMH compliant.")
         ("font,f", po::value< std::vector< std::string > >()->multitoken(), "Define the fonts to load")
         ("permanent,p", po::value< bool >(), "Make the bar permanent, don't exit after the standard input is closed.")
+        ("duplicate,D", po::value< bool >(), "Duplicate the input to all the output.")
         ("name,n", po::value< std::string >(), "Set the WM_NAME atom value for the bar.")
         ("underline,u", po::value< unsigned int >(), "Sets the underline width in pixels. The default is 1.")
         ("foreground-color,F", po::value< std::string >(), "Set the foreground color of the bar. color must be specified in the hex format \
     (#aarrggbb, #rrggbb, #rgb). If no compositor such as compton or xcompmgr is running the alpha channel is silently ignored.")
         ("background-color,B", po::value< std::string >(), "Set the background color of the bar. Accepts the same color formats as -B.")
-        ("underline-color,U", po::value< std::string >(), "Set the underline color of the bar. Accepts the same color formats as -B.");
+        ("underline-color,U", po::value< std::string >(), "Set the underline color of the bar. Accepts the same color formats as -B.")
+        ("modules,m", po::value< std::vector< std::string > >()->multitoken(), "Define the modules to load");
 
         po::variables_map vm;
 
@@ -75,26 +79,35 @@ is specified along with the -b switch then the position is relative to the botto
                 rad::OptionPrinter::printStandardAppDesc(appName, std::cout, desc); 
                 return SUCCESS; 
             }
-            if ( vm.count("geometry"         )  ) Resource::instance().set_geometry(vm["geometry"].as<std::string>());
-            if ( vm.count("bottom"           )  ) Resource::instance().m_bottom             = vm["bottom"].as<bool>();
-            if ( vm.count("dock"             )  ) Resource::instance().m_dock               = vm["dock"].as<bool>();
+            if ( vm.count("geometry"         )  ) LIMEBAR.get_X_handler().set_geometry(vm["geometry"].as<std::string>());
+            if ( vm.count("bottom"           )  ) LIMEBAR.get_X_handler().set_bottom(vm["bottom"].as<bool>());
+            if ( vm.count("dock"             )  ) LIMEBAR.get_X_handler().set_dock  (vm["dock"].as<bool>());
             if ( vm.count("font"             )  )
             {
             	const std::vector< std::string > &fonts_array = vm["font"].as<std::vector< std::string > >();
             	for ( auto font_str : fonts_array )
             	{
-            		Resource::instance().set_font(font_str);
+            		LIMEBAR.get_font_handler().set_font(font_str);
             	}
             	if ( !fonts_array.empty() )
-           			Resource::instance().set_font(fonts_array[0], true);
+           			LIMEBAR.get_font_handler().set_font(fonts_array[0], true);
            	}
-            if ( vm.count("permanent"        )  ) Resource::instance().m_permanent          = vm["permanent"].as<bool>();
-            if ( vm.count("name"             )  ) Resource::instance().m_wm_name            = vm["name"].as<std::string>();
-            if ( vm.count("underline"        )  ) Resource::instance().m_underline          = vm["underline"].as<unsigned int>();
-            if ( vm.count("command"          )  ) Resource::instance().m_command            = vm["command"].as<std::string>();
-            if ( vm.count("foreground-color" )  ) Resource::instance().set_foreground(vm["foreground-color"].as<std::string>(), true);
-            if ( vm.count("background-color" )  ) Resource::instance().set_background(vm["background-color"].as<std::string>(), true);
-            if ( vm.count("underline-color"  )  ) Resource::instance().set_underline (vm["underline-color"].as<std::string>() , true);
+            if ( vm.count("permanent"        )  ) LIMEBAR.set_permanent                (vm["permanent"].as<bool>());
+            if ( vm.count("duplicate"        )  ) LIMEBAR.set_duplicate                (vm["duplicate"].as<bool>());
+            if ( vm.count("name"             )  ) LIMEBAR.get_X_handler().set_wm_name  (vm["name"].as<std::string>());
+            if ( vm.count("underline"        )  ) LIMEBAR.get_X_handler().set_underline(vm["underline"].as<unsigned int>());
+            if ( vm.count("command"          )  ) command                             = vm["command"].as<std::string>();
+            if ( vm.count("foreground-color" )  ) LIMEBAR.get_color_handler().set_foreground(vm["foreground-color"].as<std::string>(), true);
+            if ( vm.count("background-color" )  ) LIMEBAR.get_color_handler().set_background(vm["background-color"].as<std::string>(), true);
+            if ( vm.count("underline-color"  )  ) LIMEBAR.get_color_handler().set_underline (vm["underline-color"].as<std::string>() , true);
+            if ( vm.count("modules"          )  )
+            {
+                const std::vector< std::string > &modules_array = vm["modules"].as<std::vector< std::string > >();
+                for ( auto module_str : modules_array )
+                {
+                    LIMEBAR.add_module(module_str);
+                }
+            }
 
             po::notify(vm);
         } 
@@ -112,21 +125,20 @@ is specified along with the -b switch then the position is relative to the botto
             return ERROR_IN_COMMAND_LINE; 
         }
 
-        Resource::instance().init();
-        Resource::instance().reset_to_default();
+        LIMEBAR.init();
+        LIMEBAR.pre_render();
 
     	// Install the parachute!
     	atexit(cleanup);
     	signal(SIGINT, sighandle);
     	signal(SIGTERM, sighandle);
 
-        Bar bar;
-        if (!Resource::instance().m_command.empty())
-        	bar.parse_input(Resource::instance().m_command);
+        if (!command.empty())
+        {
+        	LIMEBAR.parse_input(command);
+        }
 
-        bar.loop();
-
-        Resource::instance().cleanup();
+        LIMEBAR.loop();
 
 	}
     catch(std::exception& e) 

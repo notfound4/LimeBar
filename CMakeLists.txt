@@ -25,6 +25,7 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake_modules)
 include(GetGitRevisionDescription)
 include(Pod2Man)
+include(Utils)
 
 # Get git description
 git_describe(GIT_DESC "--tags")
@@ -57,9 +58,9 @@ if("${isSystemDir}" STREQUAL "-1")
 endif("${isSystemDir}" STREQUAL "-1")
 
 # Compile stuff
-include_directories(include)
+include_directories(include/Core)
 add_subdirectory(src)
-add_subdirectory(include)
+add_subdirectory(include/Core)
 
 # uninstall target
 configure_file(

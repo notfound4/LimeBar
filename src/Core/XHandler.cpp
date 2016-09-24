@@ -1,245 +1,102 @@
-#include "Resource.hpp"
+#include "XHandler.hpp"
+
+#include "Bar.hpp"
+#include "DatabaseHelper.hpp"
+
+#include <iostream>
+
+#include <boost/regex.hpp>
 
 extern "C" {
-#include <unistd.h>
 #include <xcb/randr.h>
 #include <xcb/xcb_ewmh.h>
 }
 
-#include <boost/regex.hpp>
-
-#include <iostream>
-
-#define COLOR_FOREGROUND 0xffffffff
-#define COLOR_BACKGROUND 0xff000000
-#define COLOR_UNDERLINE  0xff9f9f9f
-
-#define SPACING   0
-#define COMMAND   ""
-#define SHOW_ALL  false
 #define BOTTOM    false
 #define DOCK      false
-#define FONT      "Sans 12"
-#define PERMANENT false
 #define WM_NAME   "limebar"
-#define UNDERLINE 1
-#define WS_FORMAT "%wo: %ws"
 #define WIDTH     -1
 #define HEIGHT    -1
 #define X         0
 #define Y         0
+#define UNDERLINE 1
 
-
-
-double get_R(const rgba_t &color)
+limebar::XHandler::XHandler()
 {
-    return static_cast<double>(color.r) / 255.;
-}
-double get_G(const rgba_t &color)
-{
-    return static_cast<double>(color.g) / 255.;
-}
-double get_B(const rgba_t &color)
-{
-    return static_cast<double>(color.b) / 255.;
-}
-double get_A(const rgba_t &color)
-{
-    return static_cast<double>(color.a) / 255.;
-}
-
-namespace limebar {
-
-Resource::Resource()
-{
-    m_default_foreground.v = COLOR_FOREGROUND;
-    m_default_background.v = COLOR_BACKGROUND;
-    m_default_underline.v  = COLOR_UNDERLINE ;
-    m_width     = WIDTH;
+	m_width     = WIDTH;
     m_height    = HEIGHT;
     m_x         = X;
     m_y         = Y;
-    m_command   = COMMAND;
     m_bottom    = BOTTOM;
     m_dock      = DOCK;
-    m_permanent = PERMANENT;
     m_wm_name   = WM_NAME;
     m_underline = UNDERLINE;
-
-    m_default_font_desc = nullptr;
-}
-
-void Resource::update_gc ()
-{
-    uint32_t uint_array[] = { m_current_foreground.v };
-    xcb_change_gc(m_connection, m_gc[GC_DRAW], XCB_GC_FOREGROUND, uint_array);
-    uint_array[0] = m_current_background.v;
-    xcb_change_gc(m_connection, m_gc[GC_CLEAR], XCB_GC_FOREGROUND, uint_array);
-    uint_array[0] = m_current_underline.v;
-    xcb_change_gc(m_connection, m_gc[GC_ATTR], XCB_GC_FOREGROUND, uint_array);
-}
-
-void Resource::set_color(rgba_t &destination, const std::string &source)
-{
-    destination.v = (uint32_t) std::stoul(source.substr(1), nullptr, 16);
-
-    switch (source.size()) {
-        case 4:
-            // Expand the #rgb format into #rrggbb (aa is set to 0xff)
-            destination.v = (destination.v & 0xf00) * 0x1100
-                          | (destination.v & 0x0f0) * 0x0110
-                          | (destination.v & 0x00f) * 0x0011;
-        case 7:
-            // If the code is in #rrggbb form then assume it's opaque
-            destination.a = 255;
-            break;
-        default:
-            ;
-    }
-    destination.r = (destination.r * destination.a) / 255;
-    destination.g = (destination.g * destination.a) / 255;
-    destination.b = (destination.b * destination.a) / 255;
-}
-
-void Resource::set_foreground(const std::string &source, bool is_default)
-{
-    if ( regex_match(source, boost::regex("#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})")) )
-    {
-        if (is_default)
-            set_color(m_default_foreground, source);
-        else
-        {
-            set_color(m_current_foreground, source);
-            update_gc();
-        }
-    }
-}
-
-void Resource::set_background(const std::string &source, bool is_default)
-{
-    if ( regex_match(source, boost::regex("#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})")) )
-    {
-        if (is_default)
-            set_color(m_default_background, source);
-        else
-        {
-            set_color(m_current_background, source);
-            update_gc();
-        }
-    }
-}
-
-void Resource::set_underline(const std::string &source, bool is_default)
-{
-    if ( regex_match(source, boost::regex("#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})")) )
-    {
-        if (is_default)
-            set_color(m_default_underline, source);
-        else
-        {
-            set_color(m_current_underline, source);
-            update_gc();
-        }
-    }
-}
-
-void Resource::switch_colors()
-{
-    rgba_t tmp = m_current_foreground;
-    m_current_foreground = m_current_background;
-    m_current_background = tmp;
-    update_gc();
-}
-
-void Resource::set_font(const std::string &source, bool is_default)
-{
-    if (source.empty()) return;
-
-    if (is_default)
-    {
-        if ( m_fonts.find(source) != m_fonts.end() )
-            m_default_font_desc = m_fonts[source];
-        else
-        {
-            m_default_font_desc = pango_font_description_from_string(source.c_str());
-            m_fonts[source] = m_default_font_desc;
-        }
-    }
-    else
-    {
-        if ( m_fonts.find(source) != m_fonts.end() )
-            m_font_desc = m_fonts[source];
-        else
-        {
-            m_font_desc = pango_font_description_from_string(source.c_str());
-            m_fonts[source] = m_font_desc;
-        }
-    }
-}
-
-void Resource::set_geometry(const std::string &source)
-{
-    boost::regex re = boost::regex("(\\d*)x(\\d*)\\+(\\d*)\\+(\\d*)");
-    if ( regex_match(source, re) )
-    {
-        boost::sregex_token_iterator i(source.begin(), source.end(), re, {1, 2, 3, 4});
-        std::string tmp = *i;
-        if (!tmp.empty())
-            m_width = std::stoi(tmp);
-        tmp = *(++i);
-        if (!tmp.empty())
-            m_height = std::stoi(tmp);
-        tmp = *(++i);
-        if (!tmp.empty())
-            m_x = std::stoi(tmp);
-        tmp = *(++i);
-        if (!tmp.empty())
-            m_y = std::stoi(tmp);
-    }
-}
-
-void Resource::reset_to_default()
-{
-    m_current_monitor = m_default_monitor;
-    m_current_foreground.v = m_default_foreground.v;
-    m_current_background.v = m_default_background.v;
-    m_current_underline.v  = m_default_underline.v;
-    m_attr  = 0;
-    m_pos_x = 0;
-    m_align = ALIGN_L;
-    m_font_desc = m_default_font_desc;
-    update_gc();
-}
-    
-unsigned int Resource::get_font_height()
-{
-    return pango_font_description_get_size(m_font_desc) / PANGO_SCALE;
-}
-    
-unsigned int Resource::get_max_font_height()
-{
-    unsigned int ret = 0;
-    for (auto desc : m_fonts)
-    {
-        unsigned int h = pango_font_description_get_size(desc.second) / PANGO_SCALE;
-        if (h > ret)
-            ret = h;
-    }
-    return ret;
-}
-
-void Resource::init()
-{
-    if (m_default_font_desc == nullptr)
-        set_font(FONT, true);
 
     m_connection = xcb_connect (NULL, NULL);
     if (xcb_connection_has_error(m_connection)) {
         std::cerr << "Couldn't connect to X" << std::endl;
         exit(EXIT_FAILURE);
     }
+}
 
-    m_screen = xcb_setup_roots_iterator( xcb_get_setup(m_connection) ).data;
+limebar::XHandler::~XHandler()
+{
+    xcb_disconnect(m_connection);
+}
+
+std::map< std::string, limebar::Monitor >::iterator &limebar::XHandler::get_current_monitor()
+{
+    return m_current_monitor;
+}
+
+std::map< std::string, limebar::Monitor > &limebar::XHandler::get_monitors()
+{
+    return m_monitors;
+}
+
+int limebar::XHandler::get_fd()
+{
+    return xcb_get_file_descriptor(m_connection);
+}
+
+bool limebar::XHandler::connection_has_error()
+{
+    return xcb_connection_has_error(m_connection);
+}
+
+void limebar::XHandler::flush()
+{
+    xcb_flush(m_connection);
+}
+
+xcb_generic_event_t *limebar::XHandler::get_event()
+{
+    return xcb_poll_for_event(m_connection);
+}
+
+void limebar::XHandler::set_bottom(bool bottom)
+{
+    m_bottom = bottom;
+}
+
+void limebar::XHandler::set_dock(bool dock)
+{
+    m_dock = dock;
+}
+
+void limebar::XHandler::set_underline(unsigned int underline)
+{
+    m_underline = underline;
+}
+
+void limebar::XHandler::set_wm_name(const std::string &name)
+{
+    m_wm_name = name;
+}
+
+void limebar::XHandler::init()
+{
+	m_screen = xcb_setup_roots_iterator( xcb_get_setup(m_connection) ).data;
 
     m_depth = 32;
     m_visualtype = get_visualtype();
@@ -263,7 +120,7 @@ void Resource::init()
 
         // Adjust the height
         if (m_height < 0 || m_height > m_screen->height_in_pixels)
-            m_height = get_max_font_height() + m_underline + DEFAULT_Y_OFFSET;
+            m_height = LIMEBAR.get_font_handler().get_max_font_height() + m_underline + DEFAULT_Y_OFFSET;
 
         // Check the geometry
         if (m_x + m_width > m_screen->width_in_pixels ||
@@ -279,15 +136,16 @@ void Resource::init()
 
     init_ewmh();
 
-    uint32_t uint_array[] = { m_default_foreground.v };
+    ColorHandler &color_handler = LIMEBAR.get_color_handler();
+    uint32_t uint_array[] = { color_handler.get_foreground().v };
     m_gc[GC_DRAW] = xcb_generate_id(m_connection);
     xcb_create_gc(m_connection, m_gc[GC_DRAW], m_monitors.begin()->second.get_pixmap(), XCB_GC_FOREGROUND, uint_array);
 
-    uint_array[0] = m_default_background.v;
+    uint_array[0] = color_handler.get_background().v;
     m_gc[GC_CLEAR] = xcb_generate_id(m_connection);
     xcb_create_gc(m_connection, m_gc[GC_CLEAR], m_monitors.begin()->second.get_pixmap(), XCB_GC_FOREGROUND, uint_array);
 
-    uint_array[0] = m_default_underline.v;
+    uint_array[0] = color_handler.get_underline().v;
     m_gc[GC_ATTR] = xcb_generate_id(m_connection);
     xcb_create_gc(m_connection, m_gc[GC_ATTR], m_monitors.begin()->second.get_pixmap(), XCB_GC_FOREGROUND, uint_array);
 
@@ -305,9 +163,89 @@ void Resource::init()
     xcb_flush(m_connection);
 }
 
-void Resource::init_ewmh()
+void limebar::XHandler::cleanup()
 {
-    const char *atom_names[] = {
+	m_monitors.clear();
+    xcb_free_colormap(m_connection, m_colormap);
+
+    if (m_gc[GC_DRAW])
+        xcb_free_gc(m_connection, m_gc[GC_DRAW]);
+    if (m_gc[GC_CLEAR])
+        xcb_free_gc(m_connection, m_gc[GC_CLEAR]);
+    if (m_gc[GC_ATTR])
+        xcb_free_gc(m_connection, m_gc[GC_ATTR]);
+}
+
+void limebar::XHandler::set_geometry(const std::string &source)
+{
+	boost::regex re = boost::regex("(\\d*)x(\\d*)\\+(\\d*)\\+(\\d*)");
+    if ( regex_match(source, re) )
+    {
+        boost::sregex_token_iterator i(source.begin(), source.end(), re, {1, 2, 3, 4});
+        std::string tmp = *i;
+        if (!tmp.empty())
+            m_width = std::stoi(tmp);
+        tmp = *(++i);
+        if (!tmp.empty())
+            m_height = std::stoi(tmp);
+        tmp = *(++i);
+        if (!tmp.empty())
+            m_x = std::stoi(tmp);
+        tmp = *(++i);
+        if (!tmp.empty())
+            m_y = std::stoi(tmp);
+    }
+}
+
+void limebar::XHandler::reset_to_default()
+{
+    m_current_monitor = m_default_monitor;
+    update_gc();
+}
+
+void limebar::XHandler::update_gc()
+{
+	ColorHandler &handler = LIMEBAR.get_color_handler();
+	uint32_t uint_array[] = { handler.get_foreground().v };
+    xcb_change_gc(m_connection, m_gc[GC_DRAW], XCB_GC_FOREGROUND, uint_array);
+    uint_array[0] = handler.get_background().v;
+    xcb_change_gc(m_connection, m_gc[GC_CLEAR], XCB_GC_FOREGROUND, uint_array);
+    uint_array[0] = handler.get_underline().v;
+    xcb_change_gc(m_connection, m_gc[GC_ATTR], XCB_GC_FOREGROUND, uint_array);
+}
+
+void limebar::XHandler::redraw_all()
+{
+	for (auto it = m_monitors.begin(); it != m_monitors.end(); ++it)
+    {
+        it->second.redraw(m_gc[GC_DRAW]);
+    }
+}
+
+void limebar::XHandler::clear_all()
+{
+	for (auto it = m_monitors.begin(); it != m_monitors.end(); ++it)
+    {
+        it->second.clear();
+    }
+}
+
+
+xcb_visualtype_t *limebar::XHandler::get_visualtype()
+{
+	xcb_depth_iterator_t depth_iter = xcb_screen_allowed_depths_iterator (m_screen);
+
+    for (; depth_iter.rem; xcb_depth_next (&depth_iter)) {
+        if(depth_iter.data->depth == m_depth) {
+            return xcb_depth_visuals_iterator(depth_iter.data).data;
+        }
+    }
+    return NULL;
+}
+
+void limebar::XHandler::init_ewmh()
+{
+	const char *atom_names[] = {
         "_NET_WM_WINDOW_TYPE",
         "_NET_WM_WINDOW_TYPE_DOCK",
         "_NET_WM_DESKTOP",
@@ -370,12 +308,11 @@ void Resource::init_ewmh()
         xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, (*it).second.get_window(),
             XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8, m_wm_name.size(), m_wm_name.c_str());
     }
-
 }
 
-void Resource::init_randr()
+void limebar::XHandler::init_randr()
 {
-    xcb_randr_get_screen_resources_current_reply_t *rres_reply;
+	xcb_randr_get_screen_resources_current_reply_t *rres_reply;
     xcb_randr_output_t *outputs;
     int i, num;
 
@@ -456,9 +393,9 @@ void Resource::init_randr()
     create_monitors(rects_map);
 }
 
-void Resource::create_monitors(const std::map< std::string, xcb_rectangle_t > &rects_map)
+void limebar::XHandler::create_monitors(const std::map< std::string, xcb_rectangle_t > &rects_map)
 {
-    int width = 0, height = 0, min_x = 100000;
+	int width = 0, height = 0, min_x = 100000;
 
     for ( auto rect : rects_map )
     {
@@ -473,9 +410,8 @@ void Resource::create_monitors(const std::map< std::string, xcb_rectangle_t > &r
     if (m_width < 0)
         m_width = width - m_x;
 
-    // Use the first font height as all the font heights have been set to the biggest of the set
     if (m_height < 0 || m_height > height)
-        m_height = get_max_font_height() + m_underline + DEFAULT_Y_OFFSET;
+        m_height = LIMEBAR.get_font_handler().get_max_font_height() + m_underline + DEFAULT_Y_OFFSET;
 
     // Check the geometry
     if (m_x + m_width > width || m_y + m_height > height) {
@@ -509,70 +445,88 @@ void Resource::create_monitors(const std::map< std::string, xcb_rectangle_t > &r
     m_default_monitor = m_monitors.begin();
 }
 
-int  Resource::get_descent(PangoContext *pango_context)
+void limebar::XHandler::config(XrmDatabase &db)
 {
-    if ( m_descents.find(m_font_desc) != m_descents.end() )
-    {
-        return m_descents[m_font_desc];
-    }
-    else
-    {
-        PangoFont *font = pango_context_load_font(pango_context, m_font_desc);
-        PangoFontMetrics *metrics = pango_font_get_metrics(font, NULL);
-        int ret = pango_font_metrics_get_descent(metrics) / PANGO_SCALE;
+    std::string str_tmp;
+    limebar::DatabaseHelper::get_geometry(db, "limebar.geometry",  "limebar.geometry",  str_tmp    );
+    set_geometry(str_tmp);
 
-        g_object_unref(font);
-
-        m_descents[m_font_desc] = ret;
-        return ret;
-    }
+    limebar::DatabaseHelper::get_boolean (db, "limebar.bottom",    "limebar.bottom",    m_bottom   );
+    limebar::DatabaseHelper::get_boolean (db, "limebar.dock",      "limebar.dock",      m_dock     );
+    limebar::DatabaseHelper::get_string  (db, "limebar.wm-name",   "limebar.wm-name",   m_wm_name  );
+    limebar::DatabaseHelper::get_unsigned(db, "limebar.underline", "limebar.underline", m_underline);
 }
 
-void Resource::cleanup()
+void limebar::XHandler::draw_string(std::string text)
 {
-    for ( auto font : m_fonts )
-        pango_font_description_free(font.second);
-    m_fonts.clear();
-    m_descents.clear();
-
-    m_monitors.clear();
-    xcb_free_colormap(m_connection, m_colormap);
-
-    if (m_gc[GC_DRAW])
-        xcb_free_gc(m_connection, m_gc[GC_DRAW]);
-    if (m_gc[GC_CLEAR])
-        xcb_free_gc(m_connection, m_gc[GC_CLEAR]);
-    if (m_gc[GC_ATTR])
-        xcb_free_gc(m_connection, m_gc[GC_ATTR]);
-
-    xcb_disconnect(m_connection);
+    m_current_monitor->second.draw_string(text);
 }
 
-xcb_visualtype_t *Resource::get_visualtype() {
-    xcb_depth_iterator_t depth_iter = xcb_screen_allowed_depths_iterator (m_screen);
-
-    for (; depth_iter.rem; xcb_depth_next (&depth_iter)) {
-        if(depth_iter.data->depth == m_depth) {
-            return xcb_depth_visuals_iterator(depth_iter.data).data;
-        }
-    }
-    return NULL;
-}
-
-void Resource::redraw_all()
+void limebar::XHandler::draw_vertical_line()
 {
-    for (auto it = m_monitors.begin(); it != m_monitors.end(); ++it)
-    {
-        it->second.redraw(m_gc[GC_DRAW]);
-    }
+    m_current_monitor->second.draw_vertical_line();
+    LIMEBAR.get_pos_x() += m_underline;
 }
 
-void Resource::clear_all()
+void limebar::XHandler::draw_monitor()
 {
-    for (auto it = m_monitors.begin(); it != m_monitors.end(); ++it)
-    {
-        it->second.clear();
-    }
+    m_current_monitor->second.draw_string(m_current_monitor->first);
 }
 
+void limebar::XHandler::handle_monitor(std::string &input, size_t &pos_i, size_t &pos_j)
+{
+    if (++pos_i == pos_j or input[pos_i] != ':' or ++pos_i == pos_j) return;
+    
+    size_t pos_k = find_non_escaped(input, ":", pos_i, pos_j);
+    if (pos_k >= pos_j)
+    {
+        pos_i = pos_j;
+        return;
+    }
+
+    std::map<std::string, Monitor>::iterator tmp_it = m_monitors.find(input.substr(pos_i, pos_k - pos_i));
+    if ( tmp_it != m_monitors.end() )
+    {
+        m_current_monitor = tmp_it;
+        LIMEBAR.get_pos_x() = 0;
+        LIMEBAR.get_align() = ALIGN_L;
+    }
+
+    pos_i = pos_k + 1;
+}
+
+void limebar::XHandler::handle_image(std::string &input, size_t &pos_i, size_t &pos_j)
+{
+    if (++pos_i == pos_j or input[pos_i] != ':' or ++pos_i == pos_j) return;
+    
+    size_t pos_k = find_non_escaped(input, ":", pos_i, pos_j);
+    if (pos_k >= pos_j)
+    {
+        pos_i = pos_j;
+        return;
+    }
+
+    m_current_monitor->second.draw_image(input.substr(pos_i, pos_k - pos_i));
+
+    pos_i = pos_k + 1;
+}
+
+void limebar::XHandler::handle_offset(std::string &input, size_t &pos_i, size_t &pos_j)
+{
+    if (++pos_i == pos_j) return;
+    try
+    {
+        size_t pos_k;
+        uint16_t w = std::stoul( input.substr(pos_i, std::string::npos), &pos_k, 10 );
+
+        m_current_monitor->second.draw_shift(w);
+        m_current_monitor->second.area_shift(w);
+        LIMEBAR.get_pos_x() += w;
+
+        pos_i += pos_k;
+    }
+    catch (...)
+    {
+        std::cerr << "Invalid offset!" << std::endl;
+    }
 }

@@ -1,0 +1,61 @@
+=head1 NAME
+
+limebar-i3 - i3 module for limebar.
+
+=head1 DESCRIPTION
+
+B<limebar-i3> is a module for limebar. It set labels B<ws>I<output_name> for each outputs. Those labels display button for the workspace. It also set a label B<i3binding> that display the binding mode.
+
+=head1 RESOURCES
+
+limebar-i3 add some config option to the config files:
+
+=over
+
+limebar.focused.foreground:         		foreground color for focused workspace.
+
+limebar.focused.background:         		background color for focused workspace.
+
+limebar.focused.underline:          		underline color for focused workspace.
+
+limebar.focused_inactive.foreground:		foreground color for focused inactive workspace.
+
+limebar.focused_inactive.background:		background color for focused inactive workspace.
+
+limebar.focused_inactive.underline: 		underline color for focused inactive workspace.
+
+limebar.unfocused.foreground:       		foreground color for unfocused workspace.
+
+limebar.unfocused.background:       		background color for unfocused workspace.
+
+limebar.unfocused.underline:        		underline color for unfocused workspace.
+
+limebar.urgent.foreground:          		foreground color for urgent workspace.
+
+limebar.urgent.background:          		background color for urgent workspace.
+
+limebar.urgent.underline:           		underline color for urgent workspace.
+
+limebar.ws-spacing:                 		spacing between workspace in pixels.
+
+limebar.show-all:                   		should all the workspace be displayed on each output.
+
+limebar.ws-format:                  		formating of the workspace when displayed. I<%ws> is replaced by the workspace name and I<%wo> by its number.
+
+=back
+
+=head1 WWW
+
+L<git repository|https://github.com/notfound4/LimeBar>
+
+=head1 AUTHOR
+
+Heavily based on the work of:
+
+2012-2015 (C) The Lemon Man
+
+RandR support was kindly contributed by jvvv
+
+Clickable areas support was heavily based off u-ra contribution
+
+Modification by notfound404

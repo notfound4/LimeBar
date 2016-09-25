@@ -31,6 +31,8 @@ boost::filesystem::path get_user() {
 
 limebar::Bar::Bar()
 {
+	m_is_init = false;
+
 	m_permanent = PERMANENT;
 	m_duplicate = DUPLICATE;
 
@@ -76,11 +78,22 @@ limebar::Bar::Bar()
 
 limebar::Bar::~Bar()
 {
+	m_configs.clear();
+	m_inits.clear();
+	m_cleanups.clear();
+	m_pre_render.clear();
+
+	m_pollfds.clear();
+	m_pollcbs.clear();
+
+	m_parse_render.clear();
+	m_parse_non_render.clear();
 	for (std::forward_list< limebar::module_entry >::iterator it = m_modules.begin(); it != m_modules.end(); ++it)
 	{
 		it->m_destroyer(it->m_module);
 		dlclose(it->m_library);
 	}
+	m_modules.clear();
 }
 
 limebar::FontHandler &limebar::Bar::get_font_handler()
@@ -98,6 +111,11 @@ limebar::XHandler &limebar::Bar::get_X_handler()
 	return m_X_handler;
 }
 
+std::map< std::string, std::string > &limebar::Bar::get_labels()
+{
+	return m_labels;
+}
+
 int &limebar::Bar::get_pos_x()
 {
 	return m_pos_x;
@@ -111,6 +129,11 @@ Alignment &limebar::Bar::get_align()
 uint8_t &limebar::Bar::get_attr()
 {
 	return m_attr;
+}
+
+bool limebar::Bar::is_init()
+{
+	return m_is_init;
 }
 
 void limebar::Bar::set_permanent(bool permanent)
@@ -159,10 +182,12 @@ void limebar::Bar::add_config(std::function<void(XrmDatabase &db)> fn)
 
 void limebar::Bar::init()
 {
+	if (m_is_init) return;
 	for (auto &fn : m_inits)
 	{
 		fn();
 	}
+	m_is_init = true;
 }
 
 void limebar::Bar::add_init(std::function<void()> fn)
@@ -172,10 +197,12 @@ void limebar::Bar::add_init(std::function<void()> fn)
 
 void limebar::Bar::cleanup()
 {
+	if (!m_is_init) return;
 	for (auto &fn : m_cleanups)
 	{
 		fn();
 	}
+	m_is_init = false;
 }
 
 void limebar::Bar::add_cleanup(std::function<void()> fn)
@@ -247,8 +274,6 @@ void limebar::Bar::add_module(const std::string &name)
     entry.m_module = entry.m_creator();
 
     m_modules.push_front(entry);
-	add_init( [&]{entry.m_module->init();} );
-	add_cleanup( [&]{entry.m_module->cleanup();} );
 }
 
 void limebar::Bar::loop()
@@ -269,13 +294,6 @@ void limebar::Bar::loop()
         		}
         	}
         }
-
-        /*if (poll(m_pollin, 3, -1) > 0) {
-            if (m_pollin[1].revents & POLLIN) { // The event comes from i3
-        	    m_conn.handle_event();
-                redraw = true;
-        	}
-        }*/
 
         if (redraw)	m_X_handler.redraw_all();
 
@@ -430,16 +448,13 @@ void limebar::Bar::handle_area(std::string &input, size_t &pos_i, size_t &pos_j)
     return;
 
 close_area:
-    std::cout << "Test" << std::endl;
 	if (m_areas.empty()) return;
 	if ( m_areas.begin()->complete(m_pos_x, m_align, m_X_handler.get_current_monitor()) )
 	{
-    	std::cout << "add area" << std::endl;
 		m_X_handler.get_current_monitor()->second.add_area(m_areas);
 	}
 	else
 	{
-    	std::cout << "delete area" << std::endl;
 		m_areas.pop_front();
 	}
 }
@@ -470,36 +485,39 @@ void limebar::Bar::parse_input(std::string input)
     pre_render();
     m_X_handler.clear_all();
 
-	if ( !(render_str.empty() or m_duplicate) )
-        m_old_render_str = render_str;
-    else if (m_duplicate)
-    {
-    	m_old_render_str = "";
-  		for (std::map<std::string, limebar::Monitor>::iterator it=m_X_handler.get_monitors().begin(); it!=m_X_handler.get_monitors().end(); ++it)
+	if ( !render_str.empty() )
+	{
+    	if (m_duplicate)
     	{
-    	    std::string cpy = render_str;
-			pos_i = find_non_escaped(cpy, "%s", 0);
-			while (pos_i != std::string::npos)
-			{
-				cpy.replace(pos_i, 2, it->first);
-				pos_i = find_non_escaped(cpy, "%s", pos_i);
-			}
-			pos_i = find_non_escaped(cpy, "%x", 0);
-			while (pos_i != std::string::npos)
-			{
-				cpy.replace( pos_i, 2, static_cast<std::ostringstream*>( &(std::ostringstream() << it->second.get_dimensions().x) )->str() );
-				pos_i = find_non_escaped(cpy, "%x", pos_i);
-			}
-			pos_i = find_non_escaped(cpy, "%w", 0);
-			while (pos_i != std::string::npos)
-			{
-				cpy.replace( pos_i, 2, static_cast<std::ostringstream*>( &(std::ostringstream() << it->second.get_dimensions().width) )->str() );
-				pos_i = find_non_escaped(cpy, "%w", pos_i);
-			}
-			m_old_render_str.append("%{S:" + it->first + ":F-B-U-}");
-			m_old_render_str.append(cpy);
+    		m_old_render_str = "";
+  			for (std::map<std::string, limebar::Monitor>::iterator it=m_X_handler.get_monitors().begin(); it!=m_X_handler.get_monitors().end(); ++it)
+    		{
+    		    std::string cpy = render_str;
+				pos_i = find_non_escaped(cpy, "%s", 0);
+				while (pos_i != std::string::npos)
+				{
+					cpy.replace(pos_i, 2, it->first);
+					pos_i = find_non_escaped(cpy, "%s", pos_i);
+				}
+				pos_i = find_non_escaped(cpy, "%x", 0);
+				while (pos_i != std::string::npos)
+				{
+					cpy.replace( pos_i, 2, static_cast<std::ostringstream*>( &(std::ostringstream() << it->second.get_dimensions().x) )->str() );
+					pos_i = find_non_escaped(cpy, "%x", pos_i);
+				}
+				pos_i = find_non_escaped(cpy, "%w", 0);
+				while (pos_i != std::string::npos)
+				{
+					cpy.replace( pos_i, 2, static_cast<std::ostringstream*>( &(std::ostringstream() << it->second.get_dimensions().width) )->str() );
+					pos_i = find_non_escaped(cpy, "%w", pos_i);
+				}
+				m_old_render_str.append("%{S:" + it->first + ":F-B-U-}");
+				m_old_render_str.append(cpy);
+    		}
     	}
-    }
+    	else
+    		m_old_render_str = render_str;
+	}
     parse_render(m_old_render_str);
 }
 

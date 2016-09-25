@@ -32,6 +32,7 @@ namespace limebar
 		FontHandler  &get_font_handler ();
 		ColorHandler &get_color_handler();
 		XHandler     &get_X_handler    ();
+		std::map< std::string, std::string > &get_labels();
 
 		void set_permanent(bool permanent);
 		void set_duplicate(bool duplicate);
@@ -39,6 +40,8 @@ namespace limebar
 		int &get_pos_x();
 		Alignment &get_align();
 		uint8_t &get_attr();
+
+		bool is_init();
 
 		void config();
 		void add_config(std::function<void(XrmDatabase &db)> fn);
@@ -99,6 +102,8 @@ namespace limebar
 
 		std::map< char, std::function<void(std::string &, size_t &, size_t &)> > 	m_parse_render;
 		std::map< char, std::function<void(std::string &, size_t &)> >         		m_parse_non_render;
+
+		bool m_is_init;
 	};
 }
 

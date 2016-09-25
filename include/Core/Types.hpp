@@ -42,3 +42,5 @@ bool is_escaped(std::string &input, size_t &pos_i, size_t &pos_j);
 
 size_t find_non_escaped(std::string &input, std::string s, size_t pos);
 size_t find_non_escaped(std::string &input, std::string s, size_t pos_i, size_t &pos_j);
+
+std::string escape(const std::string &input, std::string s);

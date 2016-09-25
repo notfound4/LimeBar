@@ -4,11 +4,11 @@ limebar - Featherweight lime-scented bar. Heavily inspired by lemon bar.
 
 =head1 SYNOPSIS
 
-I<limebar> [-h | -g I<width>B<x>I<height>B<+>I<x>B<+>I<y> | -c I<command> | -b | -d | -f I<font> | -p | -n I<name> | -u I<pixel> | -B I<color> | -F I<color> | -U I<color>]
+I<limebar> [-h | -g I<width>B<x>I<height>B<+>I<x>B<+>I<y> | -c I<command> | -b | -d | -f I<fonts> | -p | -D | -n I<name> | -u I<pixel> | -B I<color> | -F I<color> | -U I<color>] | -m I<modules>
 
 =head1 DESCRIPTION
 
-B<limebar> is a lightweight bar based on XCB, cairo and pango. Provides full UTF-8 support, basic formatting, RandR support and EWMH compliance without wasting your precious memory.
+B<limebar> is a lightweight bar based on XCB, cairo and pango. Provides full UTF-8 support, basic formatting, RandR support and EWMH compliance without wasting your precious memory. Modules can also be written to add features
 
 =head1 OPTIONS
 
@@ -34,14 +34,17 @@ Dock the bar at the bottom of the screen.
 
 Force docking without asking the window manager. This is needed if the window manager isn't EWMH compliant.
 
-=item B<-f> I<font>
+=item B<-f> I<fonts>
 
-Define the font to load into one of the five slots (the number of slots is hardcoded and can be tweaked by
-changing the MAX_FONT_COUNT parameter in the source code).
+Define the fonts to load. The first one in the list will be considered the default font.
 
 =item B<-p>
 
 Make the bar permanent, don't exit after the standard input is closed.
+
+=item B<-D>
+
+Duplicate the input to all the output. %s will be replace by the output name, %x by its x position and %w by its width. Those symbols can be escaped.
 
 =item B<-n> I<name>
 
@@ -63,13 +66,33 @@ Set the foreground color of the bar. Accepts the same color formats as B<-B>.
 
 Set the underline color of the bar. Accepts the same color formats as B<-B>.
 
+=item B<-m> I<modules>
+
+List of modules to load. Modules add features and can be written by inhereting from Module, and compile it into a separate shared library.
+
 =back
 
 =head1 FORMATTING
 
-lemonbar provides a screenrc-inspired formatting syntax to allow full customization at runtime. Every formatting block is opened with C<%{> and closed by C<}> and accepts the following commands, the parser tries it's best to handle malformed input. Use C<%%> to get a literal percent sign (C<%>).
+limebar provides a screenrc-inspired formatting syntax to allow full customization at runtime. Every formatting block is opened with C<%{> and closed by C<}> and accepts the following commands, the parser tries it's best to handle malformed input. C<%{> can be escaped. limebar also ascept command that are not rendered. They are enclosed by C<%[> and C<]>. Those character can be escaped.
+
+B<Pre render formatting block>
 
 =over
+
+=item B<L>:I<label>:I<value>:
+
+Set label I<label> to hold I<value>.
+
+=back
+
+B<Render formatting block>
+
+=over
+
+=item B<|>
+
+Draw a vertical line.
 
 =item B<m>
 
@@ -97,21 +120,21 @@ Offset the current position by I<width> pixels in the alignment direction.
 
 =item B<B>I<color>
 
-Set the text background color. The parameter I<color> can be I<-> or a color in one of the formats mentioned before. The special value I<-> resets the color to the default one.
+Set the text background color. The parameter I<color> can be I<-> or a color in one of the formats mentioned before enclosed by I<:>. The special value I<-> resets the color to the default one.
 
 =item B<F>I<color>
 
-Set the text foreground color. The parameter I<color> can be I<-> or a color in one of the formats mentioned before. The special value I<-> resets the color to the default one.
+Set the text foreground color. The parameter I<color> can be I<-> or a color in one of the formats mentioned before enclosed by I<:>. The special value I<-> resets the color to the default one.
 
 =item B<U>I<color>
 
-Set the text underline color. The parameter I<color> can be I<-> or a color in one of the formats mentioned before. The special value I<-> resets the color to the default one.
+Set the text underline color. The parameter I<color> can be I<-> or a color in one of the formats mentioned before enclosed by I<:>. The special value I<-> resets the color to the default one.
 
-=item B<T>I<index>
+=item B<T>I<font>
 
-Set the font used to draw the following text. The parameter I<index> can either be I<-> or the 1-based index of the slot which contains the desired font. If the parameter is I<-> lemonbar resets to the normal behavior (matching the first font that can be used for the character). If the selected font can't be used to draw a character, lemonbar will fall back to normal behavior for that character
+Set the font used to draw the following text. The parameter I<font> can either be I<-> or the pango description of the font enclosed by I<:>. If the parameter is I<-> limebar resets to the default font.
 
-=item B<I>I<image>
+=item B<I>:I<image>:
 
 Display an image on the bar resized so the height fits the bar.
 
@@ -121,7 +144,7 @@ Create a clickable area starting from the current position, when the area is cli
 
 Eg. I<%{A:reboot:} Click here to reboot %{A}>
 
-The I<button> field is optional, it defaults to the left button, and it's a number ranging from 1 to 5 which maps to the left, middle, right, scroll up and scroll down movements. Your mileage may vary.
+The I<button> field is optional, it defaults to the left button, and it's a number ranging from 1 to 9 which maps to the left, middle, right, scroll up and scroll down movements. Your mileage may vary.
 
 I<W> field is optional, it will output the position of the clickable area after the command.
 
@@ -129,17 +152,11 @@ Nested clickable areas can trigger different commands.
 
 Eg. I<%{A:reboot:}%{A3:halt:} Left click to reboot, right click to shutdown %{A}%{A}>
 
-=item B<Lu>:I<label>
+=item B<L>:I<label>:
 
 Use a label (display the text associated to the label).
 
-=item B<Ls>:I<label>
-
-Modify the text associated to the label.
-
-Example: I<%{Ls:label1}%{A:reboot:} Click here to reboot %{A}%{Ls}> changes the label label1 to a button.
-
-=item B<S>I<dir>
+=item B<S>:I<dir>:
 
 Change the monitor the bar is rendered to. I<dir> is the name of the monitor
 
@@ -174,6 +191,38 @@ Draw a line over the text.
 =item B<u>
 
 Draw a line under the text.
+
+=back
+
+=head1 RESOURCES
+
+limebar can use a config file (located at I<.config/limebar/limebarrc>) that uses Xresources syntax:
+
+=over
+
+limebar.foreground:			 			the default foreground color of the bar (color)
+
+limebar.background:			 			the default background color of the bar (color)
+
+limebar.underline:			 			the default underline color of the bar (color)
+
+limebar.command:  					 	default input for limebar (string)
+
+limebar.bottom:   					 	should the bar be displayed on the bottom (boolean)
+
+limebar.dock:     					 	force dock (boolean)
+
+limebar.font:     					 	default font (string, pango format)
+
+limebar.permanent:					 	should the bar be permanent (boolean)
+
+limebar.duplicate:					 	should the input be duplicated to all the outputs
+
+limebar.wm-name:  					 	WM_NAME atom value for the bar (string)
+
+limebar.underline:					 	size of the underline (unsigned int)
+
+limebar.geometry:				  	 	geometry of the bar. Format : widthxheight+x+y. Some of the parameter can be left empty.
 
 =back
 

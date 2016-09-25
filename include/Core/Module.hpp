@@ -7,9 +7,6 @@ namespace limebar
 	public:
 		Module() {}
 		virtual ~Module() {}
-
-		virtual void init() {}
-		virtual void cleanup() {}
 	};
 
 	typedef Module* create_module_t();

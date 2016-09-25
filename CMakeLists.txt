@@ -20,6 +20,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2")
 
 # Executable dans le répertoire Exec
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
 
 # Add modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake_modules)

@@ -79,3 +79,28 @@ size_t find_non_escaped(std::string &input, std::string s, size_t pos_i, size_t 
 	}
 	return pos_i;
 }
+
+std::string escape(const std::string &input, std::string s)
+{
+	std::string ret;
+
+	size_t pos_i = 0, pos_j = input.find(s);
+	while ( pos_j != std::string::npos )
+	{
+		unsigned int count = 0;
+		while(pos_j > pos_i and input[--pos_j] == '\\' )
+		{
+			count++;
+		}
+		if (input[pos_j] != '\\') pos_j++;
+
+		ret.append(input, pos_i, pos_j - pos_i);
+		ret.append(2*count + 1, '\\');
+		ret.append(1, ':');
+
+		pos_i = pos_j + count + s.size();
+		pos_j = input.find(s, pos_i);
+	}
+	ret.append(input, pos_i, std::string::npos);
+	return ret;
+}

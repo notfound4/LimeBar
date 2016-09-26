@@ -1,0 +1,33 @@
+=head1 NAME
+
+limebar-portage - portage module for limebar.
+
+=head1 DESCRIPTION
+
+B<limebar-portage> is a module for limebar. It set labels B<portage_date> (date of the last sync, formated using the config string) and B<portage_nb> (number of updates).
+
+=head1 RESOURCES
+
+limebar-portage add some config option to the config files:
+
+=over
+
+limebar.portage.date-format:        		formating of the date. See I<date> manpage for more information.
+
+=back
+
+=head1 WWW
+
+L<git repository|https://github.com/notfound4/LimeBar>
+
+=head1 AUTHOR
+
+Heavily based on the work of:
+
+2012-2015 (C) The Lemon Man
+
+RandR support was kindly contributed by jvvv
+
+Clickable areas support was heavily based off u-ra contribution
+
+Modification by notfound404

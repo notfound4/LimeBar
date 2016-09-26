@@ -34,6 +34,10 @@ namespace limebar
     		m_fd = open(FIFO_FILE, O_RDONLY | O_NONBLOCK);
 
 			LIMEBAR.add_fd({ .fd = m_fd, .events = POLLIN, .revents = 0 }, [&](struct pollfd &fd){
+				if (fd.revents & POLLHUP) { 
+					close(m_fd);
+					m_fd = open(FIFO_FILE, O_RDONLY | O_NONBLOCK);
+				}
 				if (fd.revents & POLLIN) { // The event comes from i3
         	    	got_update();
         		}
@@ -61,11 +65,6 @@ namespace limebar
 			char buf[256];
 			int ret;
 			while ( (ret = read(m_fd, buf, 256 * sizeof(char))) > 0){}
-			if (ret < 0)
-			{
-				close(m_fd);
-				m_fd = open(FIFO_FILE, O_RDONLY | O_NONBLOCK);
-			}
 
 			std::ifstream file(TIME_FILE);
 			if (file.is_open())

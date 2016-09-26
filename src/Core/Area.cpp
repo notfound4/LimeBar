@@ -13,7 +13,21 @@ bool Area::complete(uint16_t end, Alignment align, std::map<std::string, Monitor
 	if (m_align != align or monitor != m_monitor)
 		return false;
 
-	m_end = end;
+	switch (align) {
+        case ALIGN_L:
+            m_end = end;
+            break;
+        case ALIGN_C:
+        	m_end = (monitor->second.get_dimensions().width + end)/2;
+        	m_begin = m_begin + (monitor->second.get_dimensions().width - end)/2;
+            break;
+        case ALIGN_R:
+            // The newest is the rightmost one
+            m_end = monitor->second.get_dimensions().width;
+            m_begin = m_end + m_begin - end;
+            break;
+    }
+
 	return true;
 }
 

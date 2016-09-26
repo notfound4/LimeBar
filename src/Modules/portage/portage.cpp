@@ -87,7 +87,7 @@ namespace limebar
 			if (file.is_open())
   			{
   				std::string line;
-  			  	while ( getline (file, line) ) {}
+  			  	getline (file, line);
 
   			  	std::ostringstream formatted;
   			  	formatted << std::right << std::setw(2) << line;

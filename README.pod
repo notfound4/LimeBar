@@ -206,8 +206,6 @@ limebar.background:			 			the default background color of the bar (color)
 
 limebar.underline:			 			the default underline color of the bar (color)
 
-limebar.command:  					 	default input for limebar (string)
-
 limebar.bottom:   					 	should the bar be displayed on the bottom (boolean)
 
 limebar.dock:     					 	force dock (boolean)

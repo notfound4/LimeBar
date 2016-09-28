@@ -51,8 +51,8 @@ limebar::Bar::Bar()
 	add_config( [&](XrmDatabase &db){ m_font_handler.config(db); } );
 	add_config( [&](XrmDatabase &db){ m_X_handler.config(db); } );
 
-	add_fd({ .fd = STDIN_FILENO, .events = POLLIN }, [&](struct pollfd &fd){return handle_input(fd);});
-	add_fd({ .fd = m_X_handler.get_fd(), .events = POLLIN }, [&](struct pollfd &fd){return handle_xcb(fd);});
+	add_fd({ .fd = STDIN_FILENO, .events = POLLIN }, [&](struct pollfd &fd, bool &reparse, bool &redraw){handle_input(fd, redraw);});
+	add_fd({ .fd = m_X_handler.get_fd(), .events = POLLIN }, [&](struct pollfd &fd, bool &reparse, bool &redraw){handle_xcb(fd, redraw);});
 
 	add_parse_non_render('L', [&](std::string &input, size_t &pos){handle_label_set(input, pos);} );
 
@@ -223,10 +223,16 @@ void limebar::Bar::add_pre_render(std::function<void()> fn)
 	m_pre_render.push_front(fn);
 }
 
-void limebar::Bar::add_fd(const struct pollfd &fd, std::function<bool(struct pollfd &)> fn)
+void limebar::Bar::add_fd(const struct pollfd &fd, std::function<void(struct pollfd &, bool &, bool &)> fn)
 {
 	m_pollfds.push_back(fd);
 	m_pollcbs[fd.fd] = fn;
+}
+
+void limebar::Bar::remove_fd(int fd)
+{
+	m_pollfds.erase( std::remove_if(m_pollfds.begin(), m_pollfds.end(), [&](const struct pollfd &pfd){return pfd.fd == fd;}) );
+	m_pollcbs.erase(fd);
 }
 
 void limebar::Bar::add_parse_render(char c, std::function<void(std::string &, size_t &, size_t &)> fn)
@@ -279,6 +285,7 @@ void limebar::Bar::add_module(const std::string &name)
 void limebar::Bar::loop()
 {
 	for (;;) {
+        bool reparse = false;
         bool redraw = false;
 
         if (m_X_handler.connection_has_error())
@@ -290,20 +297,25 @@ void limebar::Bar::loop()
         	{
         		if (m_pollfds[i].revents)
         		{
-        			redraw = m_pollcbs[m_pollfds[i].fd](m_pollfds[i]);
+        			m_pollcbs[m_pollfds[i].fd](m_pollfds[i], reparse, redraw);
         		}
         	}
         }
 
-        if (redraw)	m_X_handler.redraw_all();
+        if (reparse)
+        {
+        	pre_render();
+    		m_X_handler.clear_all();
+        	parse_render(m_old_render_str);
+        }
+        if (redraw)	 m_X_handler.redraw_all();
 
         m_X_handler.flush();
     }
 }
 
-bool limebar::Bar::handle_input(struct pollfd &fd)
+void limebar::Bar::handle_input(struct pollfd &fd, bool &redraw)
 {
-	bool redraw = false;
 	if (fd.revents & POLLHUP) {      // No more data...
         if (m_permanent) fd.fd = -1;   // ...null the fd and continue polling :D
         else exit(EXIT_SUCCESS);                         // ...bail out
@@ -315,15 +327,11 @@ bool limebar::Bar::handle_input(struct pollfd &fd)
 		parse_input(message);
         redraw = true;
     }
-    return redraw;
 }
 
-bool limebar::Bar::handle_xcb(struct pollfd &fd)
+void limebar::Bar::handle_xcb(struct pollfd &fd, bool &redraw)
 {
-	bool redraw = false;
-
-
-    if (fd.revents & POLLIN) { // The event comes from the Xorg server
+	if (fd.revents & POLLIN) { // The event comes from the Xorg server
 		xcb_generic_event_t *ev;
     	xcb_button_press_event_t *press_ev;
         while ( (ev = m_X_handler.get_event()) ) {
@@ -348,7 +356,6 @@ bool limebar::Bar::handle_xcb(struct pollfd &fd)
             free(ev);
         }
     }
-    return redraw;
 }
 
 void limebar::Bar::handle_attr(const std::string &input, size_t &pos_i, size_t &pos_j)

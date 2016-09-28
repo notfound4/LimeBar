@@ -51,7 +51,8 @@ namespace limebar
 		void add_cleanup(std::function<void()> fn);
 		void pre_render();
 		void add_pre_render(std::function<void()> fn);
-		void add_fd(const struct pollfd &fd, std::function<bool(struct pollfd &)> fn);
+		void add_fd(const struct pollfd &fd, std::function<void(struct pollfd &, bool &, bool &)> fn);
+		void remove_fd(int fd);
 		void add_parse_render(char c, std::function<void(std::string &, size_t &, size_t &)> fn);
 		void add_parse_non_render(char c, std::function<void(std::string &, size_t &)> fn);
 		void add_module(const std::string &name);
@@ -64,8 +65,8 @@ namespace limebar
 		void parse_pre_render(std::string input);
 		void parse_render(std::string input);
 
-		bool handle_input(struct pollfd &fd);
-		bool handle_xcb(struct pollfd &fd);
+		void handle_input(struct pollfd &fd, bool &redraw);
+		void handle_xcb(struct pollfd &fd, bool &redraw);
 		void handle_attr(const std::string &input, size_t &pos_i, size_t &pos_j);
 		void handle_label_use(std::string &input, size_t &pos_i, size_t &pos_j);
 		void handle_label_set(std::string &input, size_t &pos);
@@ -97,8 +98,8 @@ namespace limebar
 		std::forward_list< std::function<void()> > 					m_cleanups;
 		std::forward_list< std::function<void()> > 					m_pre_render;
 
-		std::vector<struct pollfd>									m_pollfds;
-		std::map< int, std::function<bool(struct pollfd &)> >		m_pollcbs;
+		std::vector<struct pollfd>													m_pollfds;
+		std::map< int, std::function<void(struct pollfd &, bool &, bool &)> >		m_pollcbs;
 
 		std::map< char, std::function<void(std::string &, size_t &, size_t &)> > 	m_parse_render;
 		std::map< char, std::function<void(std::string &, size_t &)> >         		m_parse_non_render;

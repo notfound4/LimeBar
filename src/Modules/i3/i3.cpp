@@ -77,11 +77,12 @@ namespace limebar
 
 			m_conn.connect_event_socket();
 
-			LIMEBAR.add_fd({ .fd = m_conn.get_event_socket_fd(), .events = POLLIN, .revents = 0 }, [&](struct pollfd &fd){
+			LIMEBAR.add_fd({ .fd = m_conn.get_event_socket_fd(), .events = POLLIN, .revents = 0 }, [&](struct pollfd &fd, bool &reparse, bool &redraw){
 				if (fd.revents & POLLIN) { // The event comes from i3
         	    	m_conn.handle_event();
         		}
-				return true;
+				reparse=true;
+				redraw=true;
 			});
 
 			LIMEBAR.add_config([&](XrmDatabase &db){config(db);});
@@ -209,13 +210,11 @@ namespace limebar
 		
 				LIMEBAR.get_labels()["ws" + output.first] = message;
 			}
-			LIMEBAR.parse_input("");
 		}
 
 		void update_mode(const i3ipc::mode_t&  m)
 		{
 			LIMEBAR.get_labels()["i3binding"] = m.change;
-			LIMEBAR.parse_input("");
 		}
     	
     private:

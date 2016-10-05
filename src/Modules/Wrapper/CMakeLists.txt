@@ -1,0 +1,8 @@
+add_library(limebar-wrapper SHARED Module_Wrapper.cpp Wrapper_Thread.cpp)
+
+install(TARGETS limebar-wrapper
+	DESTINATION ${CMAKE_INSTALL_LIBDIR}/LimeBar
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
+SUBDIRADD(Modules)

@@ -59,9 +59,9 @@ if("${isSystemDir}" STREQUAL "-1")
 endif("${isSystemDir}" STREQUAL "-1")
 
 # Compile stuff
-include_directories(include/Core include)
+include_directories(include/Core include/Modules)
 add_subdirectory(src)
-add_subdirectory(include/Core)
+add_subdirectory(include)
 
 # uninstall target
 configure_file(

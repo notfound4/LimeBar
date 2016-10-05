@@ -247,10 +247,13 @@ void limebar::Bar::add_parse_non_render(char c, std::function<void(std::string &
 
 void limebar::Bar::add_module(const std::string &name)
 {
+	std::string module_str = "liblimebar-";
+	module_str += name;
+	module_str += ".so";
 	limebar::module_entry entry;
 
     // load the triangle library
-	entry.m_library = dlopen(name.c_str(), RTLD_NOW);
+	entry.m_library = dlopen(module_str.c_str(), RTLD_NOW);
     if (!entry.m_library) {
         std::cerr << "Cannot load library: " << dlerror() << std::endl;
         return;

@@ -1,0 +1,4 @@
+install(FILES Wrapper_Module.hpp Module_Wrapper.hpp Wrapper_Thread.hpp
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/LimeBar/Wrapper
+	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+)

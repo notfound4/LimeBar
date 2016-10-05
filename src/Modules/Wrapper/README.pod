@@ -1,0 +1,23 @@
+=head1 NAME
+
+limebar-wrapper - wrapper module for limebar.
+
+=head1 DESCRIPTION
+
+B<limebar-wrapper> is a module for limebar. It redirect the standart output to a file descriptor. The first word of the output is the name of the module to load (name => libwrapper-name.so). This module will handle the output.
+
+=head1 WWW
+
+L<git repository|https://github.com/notfound4/LimeBar>
+
+=head1 AUTHOR
+
+Heavily based on the work of:
+
+2012-2015 (C) The Lemon Man
+
+RandR support was kindly contributed by jvvv
+
+Clickable areas support was heavily based off u-ra contribution
+
+Modification by notfound404

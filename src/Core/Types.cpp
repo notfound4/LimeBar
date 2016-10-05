@@ -1,5 +1,7 @@
 #include "Types.hpp"
 
+#include <iostream>
+
 double get_R(const rgba_t &color)
 {
     return static_cast<double>(color.r) / 255.;
@@ -103,4 +105,140 @@ std::string escape(const std::string &input, std::string s)
 	}
 	ret.append(input, pos_i, std::string::npos);
 	return ret;
+}
+
+void handle_sq(char *buf, size_t buflen, size_t &pos_w, size_t &pos_r)
+{
+	while (pos_r < buflen)
+	{
+		if (buf[pos_r] == '\0')
+		{
+			break;
+		}
+		else if (buf[pos_r] == '\'')
+		{
+			++pos_r;
+			break;
+		}
+		else if (buf[pos_r] == '\\')
+		{
+			if (buf[++pos_r] == '\0')
+			{
+				buf[pos_w] == '\0';
+				break;
+			}
+			else if (buf[pos_r] == '\'')
+			{
+				buf[pos_w++] = buf[pos_r++];
+			}
+			else
+			{
+				buf[pos_w++] = '\\';
+				buf[pos_w++] = buf[pos_r++];
+			}
+		}
+		else
+		{
+			buf[pos_w++] = buf[pos_r++];
+		}
+	}
+}
+
+void handle_dq(char *buf, size_t buflen, size_t &pos_w, size_t &pos_r)
+{
+	while (pos_r < buflen)
+	{
+		if (buf[pos_r] == '\0')
+		{
+			break;
+		}
+		else if (buf[pos_r] == '\"')
+		{
+			++pos_r;
+			break;
+		}
+		else if (buf[pos_r] == '\\')
+		{
+			if (buf[++pos_r] == '\0')
+			{
+				buf[pos_w] == '\0';
+				break;
+			}
+			else if (buf[pos_r] == '\\' or buf[pos_r] == '\"')
+			{
+				buf[pos_w++] = buf[pos_r++];
+			}
+			else
+			{
+				buf[pos_w++] = '\\';
+				buf[pos_w++] = buf[pos_r++];
+			}
+		}
+		else
+		{
+			buf[pos_w++] = buf[pos_r++];
+		}
+	}
+}
+
+void handle_word(char *buf, size_t buflen, size_t &pos_w, size_t &pos_r)
+{
+	while (pos_r < buflen)
+	{
+		if (buf[pos_r] == '\0')
+		{
+			buf[pos_w] = '\0';
+			break;
+		}
+		else if (buf[pos_r] == '\\')
+		{
+			if (buf[++pos_r] == '\0')
+			{
+				buf[pos_w] = '\0';
+				break;
+			}
+			buf[pos_w++] = buf[pos_r++];
+		}
+		else if (isspace(buf[pos_r]))
+		{
+			buf[pos_w++] = '\0';
+			pos_r++;
+			break;
+		}
+		else if (buf[pos_r] == '\'')
+		{
+			handle_sq(buf, buflen, pos_w, ++pos_r);
+		}
+		else if (buf[pos_r] == '\"')
+		{
+			handle_dq(buf, buflen, pos_w, ++pos_r);
+		}
+		else
+		{
+			buf[pos_w++] = buf[pos_r++];
+		}
+	}
+}
+
+void split_cmd(char *buf, size_t buflen, char **split, size_t splitlen)
+{
+	size_t pos_w = 0, pos_r = 0, pos_split = 0;
+	while (pos_r < buflen)
+	{
+		if (isspace(buf[pos_r]))
+		{
+			pos_r++;
+		}
+		else if (buf[pos_r] == '\0')
+		{
+			break;
+		}
+		else
+		{
+			if (pos_split == splitlen-1) break;
+			split[pos_split++] = buf + pos_w;
+			handle_word(buf, buflen, pos_w, pos_r);
+		}
+	}
+	split[pos_split] = '\0';
 }

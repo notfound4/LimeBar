@@ -4,6 +4,7 @@
 
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #include <iomanip>
 #include <sstream>
 
@@ -14,7 +15,8 @@ extern "C" {
 }
 
 #define FIFO_FILE "/tmp/portage_fifo"
-#define UPDATE_FILE "/tmp/portage_update"
+#define UPDATE_FILE "/etc/limebar/portage_nb"
+#define UPDATING_FILE "/etc/limebar/portage_updating"
 #define TIME_FILE "/usr/portage/metadata/timestamp.chk"
 
 #define DATE_FORMAT "%d-%m-%Y"
@@ -72,7 +74,7 @@ namespace limebar
 		{
 			char buf[256];
 			int ret;
-			while ( (ret = read(m_fd, buf, 256 * sizeof(char))) > 0){}
+			while ( ( ret = read(m_fd, buf, sizeof(buf)) ) > 0 ){}
 	
 			std::ifstream file(TIME_FILE);
 			if (file.is_open())
@@ -91,17 +93,26 @@ namespace limebar
 	
   			  	file.close();
   			}
-			file.open(UPDATE_FILE);
+			file.open(UPDATING_FILE);
 			if (file.is_open())
   			{
   				std::string line;
   			  	getline (file, line);
+  			  	file.close();
+
+  			  	if (line.empty())
+  			  	{
+					file.open(UPDATE_FILE);
+					if (file.is_open())
+  					{
+  					  	getline (file, line);
+  			  			file.close();
+  			  		}
+  			  	}
 	
   			  	std::ostringstream formatted;
-  			  	formatted << std::right << std::setw(2) << line;
+  			  	formatted << std::right << std::setw(5) << line;
   			  	LIMEBAR.get_labels()["portage_nb"] = formatted.str();
-	
-  			  	file.close();
   			}
 		}
 

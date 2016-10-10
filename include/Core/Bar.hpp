@@ -56,6 +56,7 @@ namespace limebar
 		void add_parse_render(char c, std::function<void(std::string &, size_t &, size_t &)> fn);
 		void add_parse_non_render(char c, std::function<void(std::string &, size_t &)> fn);
 		void add_module(const std::string &name);
+		Module *get_module(const std::string &name);
 
 		void loop();
 
@@ -89,9 +90,9 @@ namespace limebar
 
 		std::string                                 m_old_render_str;
 
-		std::map< std::string, std::string > 		m_labels;
-		std::forward_list< limebar::Area >          m_areas;
-		std::forward_list< limebar::module_entry >  m_modules;
+		std::map< std::string, std::string > 			m_labels;
+		std::forward_list< limebar::Area >          	m_areas;
+		std::map< std::string, limebar::module_entry >  m_modules;
 
 		std::forward_list< std::function<void(XrmDatabase &db)> > 	m_configs;
 		std::forward_list< std::function<void()> > 					m_inits;

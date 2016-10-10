@@ -17,7 +17,9 @@ namespace limebar
 
 		~Module_wrapper();
 
-		void add_thread(const std::string &category, char *const*args, const std::string &id, int input, int output);
+		void add_thread(const std::string &category, char *const* args, const std::string &id, int input, int output);
+		bool check_thread(const std::string &category, const std::string &id);
+		std::map< std::string, std::unique_ptr<Wrapper_Thread> > &get_threads();
 
 		void remove_thread(pid_t pid);
 

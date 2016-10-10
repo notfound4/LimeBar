@@ -12,7 +12,10 @@ namespace limebar
 	{
 	public:
 		Wrapper_Thread(char *const*args, const std::string &id, int input, int output);
-		~Wrapper_Thread();
+		Wrapper_Thread(char *const*args, const std::string &id, int input[2], int output);
+		Wrapper_Thread(char *const*args, const std::string &id, int input, int output[2]);
+		Wrapper_Thread(char *const*args, const std::string &id, int input[2], int output[2]);
+		virtual ~Wrapper_Thread();
 
 		Wrapper_Thread() = delete;
 		Wrapper_Thread(Wrapper_Thread& that) = delete;

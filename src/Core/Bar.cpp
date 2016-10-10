@@ -88,10 +88,10 @@ limebar::Bar::~Bar()
 
 	m_parse_render.clear();
 	m_parse_non_render.clear();
-	for (std::forward_list< limebar::module_entry >::iterator it = m_modules.begin(); it != m_modules.end(); ++it)
+	for (std::map< std::string, limebar::module_entry >::iterator it = m_modules.begin(); it != m_modules.end(); ++it)
 	{
-		it->m_destroyer(it->m_module);
-		dlclose(it->m_library);
+		it->second.m_destroyer(it->second.m_module);
+		dlclose(it->second.m_library);
 	}
 	m_modules.clear();
 }
@@ -282,7 +282,12 @@ void limebar::Bar::add_module(const std::string &name)
     // create an instance of the class
     entry.m_module = entry.m_creator();
 
-    m_modules.push_front(entry);
+    m_modules[name] = entry;
+}
+		
+limebar::Module *limebar::Bar::get_module(const std::string &name)
+{
+	return m_modules[name].m_module;
 }
 
 void limebar::Bar::loop()

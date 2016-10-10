@@ -161,8 +161,8 @@ void limebar::Module_wrapper::handle_signal(int sig, siginfo_t *si, void *contex
 	if(si->si_code == CLD_EXITED || si->si_code == CLD_KILLED)
 		remove_thread(si->si_pid);
 }
-
-void limebar::Module_wrapper::add_thread(const std::string &category, char *const*args, const std::string &id, int input, int output)
+		
+void limebar::Module_wrapper::add_thread(const std::string &category, char *const* args, const std::string &id, int input, int output)
 {
 	std::map< std::string, std::unique_ptr<Wrapper_Thread> >::iterator it = m_threads.find(category);
 	if (it != m_threads.end())
@@ -187,6 +187,29 @@ void limebar::Module_wrapper::add_thread(const std::string &category, char *cons
 	m_threads[category].reset(t);
 }
 
+bool limebar::Module_wrapper::check_thread(const std::string &category, const std::string &id)
+{
+	std::map< std::string, std::unique_ptr<Wrapper_Thread> >::iterator it = m_threads.find(category);
+	if (it != m_threads.end())
+	{
+		bool do_exit = (it->second->get_id() == id);
+		sigset_t mask, oldmask, allmask;
+		sigfillset(&allmask);
+		sigfillset(&mask);
+   		sigdelset(&mask, SIGCHLD);
+
+   		sigprocmask (SIG_BLOCK, &allmask, &oldmask);
+		it->second->kill();
+		sigsuspend (&mask);
+		sigprocmask (SIG_SETMASK, &oldmask, NULL);
+
+		if (do_exit)
+			return true;
+    	std::this_thread::sleep_for (std::chrono::milliseconds(300));
+	}
+	return false;
+}
+
 void limebar::Module_wrapper::remove_thread(pid_t pid)
 {
 	for (std::map< std::string, std::unique_ptr<Wrapper_Thread> >::iterator it=m_threads.begin(); it!=m_threads.end(); ++it)
@@ -197,6 +220,11 @@ void limebar::Module_wrapper::remove_thread(pid_t pid)
 			return;
 		}
 	}
+}
+		
+std::map< std::string, std::unique_ptr<limebar::Wrapper_Thread> > &limebar::Module_wrapper::get_threads()
+{
+	return m_threads;
 }
 
 // the class factories

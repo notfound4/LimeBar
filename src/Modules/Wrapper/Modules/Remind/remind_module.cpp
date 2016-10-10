@@ -86,16 +86,11 @@ namespace limebar
 				});
 				m_parent->get_threads()[cat].reset(new limebar::Remind_Thread(arg_fork, id, input, output, nb));
 
-				int i = 0;
-				for (; i < nb and i < static_cast<Module_remind*>(LIMEBAR.get_module("remind"))->get_entries().size(); ++i)
+				limebar::Wrapper_Thread *thread = m_parent->get_threads()["dzen"].get();
+				if ( thread != nullptr and thread->get_id().substr(0, 6).compare("remind") == 0 )
 				{
-					write( input[1], static_cast<Module_remind*>(LIMEBAR.get_module("remind"))->get_entries()[i].c_str(),
-						strlen(static_cast<Module_remind*>(LIMEBAR.get_module("remind"))->get_entries()[i].c_str()) );
-					write( input[1], "\n", 1 );
-				}
-				for(; i < nb; ++i)
-				{
-					write( input[1], "\n", 1 );
+					limebar::Remind_Thread *remind_thread = static_cast<limebar::Remind_Thread *>(thread);
+					remind_thread->print_entries();
 				}
    			}
 		}
